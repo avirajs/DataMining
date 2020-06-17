@@ -163,8 +163,15 @@ cases_TX
 cases_Dallas <- cases_TX %>% filter(county_name == "Dallas County" & state == "TX")
 dim(cases_Dallas)
 
+cases_per_day <- diff(cases_Dallas$confirmed_cases)
+
+cases_confirmed_per_day <- data.frame(date = cases_Dallas$date[2:135], case_numbers = cases_per_day)
 
 ggplot(cases_Dallas, aes(x = date, y = confirmed_cases)) + geom_line() + geom_smooth()
+
+ggplot(cases_confirmed_per_day, aes(x = date, y = case_numbers)) + geom_line() + geom_smooth()
+
+ggplot(cases_Dallas, aes(x = date, y = deaths)) + geom_line() + geom_smooth()
 
 # Source: https://www.google.com/covid19/mobility/index.html
 
