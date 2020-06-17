@@ -163,15 +163,33 @@ cases_TX
 cases_Dallas <- cases_TX %>% filter(county_name == "Dallas County" & state == "TX")
 dim(cases_Dallas)
 
-cases_per_day <- diff(cases_Dallas$confirmed_cases)
 
-cases_confirmed_per_day <- data.frame(date = cases_Dallas$date[2:135], case_numbers = cases_per_day)
 
+num_cases <- diff(cases_Dallas$confirmed_cases)
+
+num_deaths <- diff(cases_Dallas$deaths)
+
+
+
+cases_confirmed_per_day <- data.frame(date = cases_Dallas$date[2:135], cases_per_day = num_cases)
+
+deaths_per_day <- data.frame(date = cases_Dallas$date[2:135], deaths = num_deaths)
+
+
+
+# Graphing cumulative cases
 ggplot(cases_Dallas, aes(x = date, y = confirmed_cases)) + geom_line() + geom_smooth()
 
-ggplot(cases_confirmed_per_day, aes(x = date, y = case_numbers)) + geom_line() + geom_smooth()
-
 ggplot(cases_Dallas, aes(x = date, y = deaths)) + geom_line() + geom_smooth()
+
+
+
+# Graphing cases per day
+ggplot(cases_confirmed_per_day, aes(x = date, y = case_numbers)) + geom_step()
+
+ggplot(deaths_per_day, aes(x = date, y = deaths)) + geom_step()
+
+
 
 # Source: https://www.google.com/covid19/mobility/index.html
 
