@@ -17,4 +17,7 @@ ggplot(cases_US, aes(x = date, y = confirmed_cases)) + geom_line() + geom_smooth
 cases_confirmed_by_county <- cases_TX %>% select(confirmed_cases,county_name, date) %>%
   drop_na() %>% group_by(county_name, date) %>% summarize(cases_per_day = c(confirmed_cases[1],diff(confirmed_cases)) )
 
-ggplot(cases_confirmed_by_county, aes(x = date, y = cases_per_day)) + geom_line(aes(color = county_name, linetype = county_name),  show.legend = FALSE)
+ggplot(cases_confirmed_by_county, aes(x = date, y = cases_per_day)) +
+ geom_line(aes(color = county_name, linetype = county_name), show.legend = FALSE  ) +
+ geom_smooth(aes(color = county_name, linetype = county_name), show.legend = FALSE, se=FALSE)+
+ ylim(0,100)
