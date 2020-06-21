@@ -3,6 +3,7 @@ library("ggplot2")
 library("ggrepel")
 library("ggcorrplot")
 library("DT")
+library("reshape2")
 
 cases_TX <- read_csv("COVID-19_cases_TX.csv")
 cases_TX <- cases_TX %>% mutate_if(is.character, factor)
