@@ -32,7 +32,12 @@ cases_confirmed_by_county <- cases_TX %>% select(county_name, date, confirmed_ca
  group_by(county_name, date) %>% dcast(date ~ county_name,value.var="confirmed_cases")  %>% select(-date)%>%sapply( diff, lag=1) %>%
   melt(id.vars = c("date", "county_name"), measure.vars = c("cases_per_day")) %>%   drop_na()
 
+cases_dates <- seq(as.Date("2020/01/23"), as.Date("2020/06/04"), "day" )
 
-ggplot(cases_confirmed_by_county, aes(x = Var1, y = value)) +
+cases_confirmed_by_county <- cases_confirmed_by_county %>% mutate(
+  Dates = rep(cases_dates,times = 255)
+)
+
+ggplot(cases_confirmed_by_county, aes(x = Dates, y = value)) +
  # geom_line(aes(color = Var2, linetype = Var2), show.legend = FALSE  ) +
  geom_smooth(aes(color = Var2, linetype = Var2), show.legend = FALSE, se=FALSE) + ylim(0,20)
