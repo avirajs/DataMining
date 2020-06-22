@@ -32,10 +32,20 @@ cases_confirmed_by_county <- cases_TX %>% select(county_name, date, confirmed_ca
  group_by(county_name, date) %>% dcast(date ~ county_name,value.var="confirmed_cases")  %>% select(-date)%>%sapply( diff, lag=1) %>%
   melt(id.vars = c("date", "county_name"), measure.vars = c("cases_per_day")) %>%   drop_na()
 
+cases_confirmed_by_state <- cases_US %>% select(state_name, date,confirmed_cases)%>%
+  group_by(state_name, date) %>% dcast(date ~ state_name,value.var="confirmed_cases")  %>% select(-date)%>%sapply( diff, lag=1) %>%
+  melt(id.vars = c("date", "state_name"), measure.vars = c("cases_per_day")) %>%   drop_na()
+
+#Created a sequence of dates from the start of the data
 cases_dates <- seq(as.Date("2020/01/23"), as.Date("2020/06/04"), "day" )
 
+#Created a new column called Dates and repeat the sequence for each county
 cases_confirmed_by_county <- cases_confirmed_by_county %>% mutate(
   Dates = rep(cases_dates,times = 255)
+)
+
+cases_confirmed_by_state <- cases_confirmed_by_county %>% mutate(
+  Dates = rep(cases_dates,times = 51)
 )
 
 ggplot(cases_confirmed_by_county, aes(x = Dates, y = value)) +
