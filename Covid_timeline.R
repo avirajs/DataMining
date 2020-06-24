@@ -8,7 +8,7 @@ library("reshape2")
 cases_TX <- read_csv("COVID-19_cases_TX.csv")
 cases_TX <- cases_TX %>% mutate_if(is.character, factor)
                                    
-cases_US <- read_csv("Covid_Cases_US_Timeline.csv")
+cases_US <- read_csv("COVID-19_Cases_Timeline_US.csv")
 cases_US <- cases_US %>% mutate_if(is.character, factor)
 
 ggplot(cases_TX, aes(x = date, y = confirmed_cases)) + geom_line() + geom_smooth()
@@ -17,6 +17,9 @@ ggplot(cases_US, aes(x = date, y = confirmed_cases)) + geom_line() + geom_smooth
 
 cases_confirmed_by_county <- cases_TX %>% select(confirmed_cases,county_name, date) %>%
   drop_na() %>% group_by(county_name, date) %>% summarize(cases_per_day = c(confirmed_cases[1],diff(confirmed_cases)) )
+
+cases_confirmed_by_state <- cases_US %>% select(confirmed_cases,state, date) %>%
+  drop_na() %>% group_by(state, date) %>% summarize(cases_per_day = c(confirmed_cases[1],diff(confirmed_cases)) )
 
 
 #cumulative
@@ -32,9 +35,9 @@ cases_confirmed_by_county <- cases_TX %>% select(county_name, date, confirmed_ca
  group_by(county_name, date) %>% dcast(date ~ county_name,value.var="confirmed_cases")  %>% select(-date)%>%sapply( diff, lag=1) %>%
   melt(id.vars = c("date", "county_name"), measure.vars = c("cases_per_day")) %>%   drop_na()
 
-cases_confirmed_by_state <- cases_US %>% select(state_name, date,confirmed_cases)%>%
-  group_by(state_name, date) %>% dcast(date ~ state_name,value.var="confirmed_cases")  %>% select(-date)%>%sapply( diff, lag=1) %>%
-  melt(id.vars = c("date", "state_name"), measure.vars = c("cases_per_day")) %>%   drop_na()
+cases_confirmed_by_state <- cases_US %>% select(state, date,confirmed_cases)%>%
+  group_by(state, date) %>% dcast(date ~ state,value.var="confirmed_cases")  %>% select(-date)%>%sapply( diff, lag=1) %>%
+  melt(id.vars = c("date", "state"), measure.vars = c("cases_per_day")) %>%   drop_na()
 
 #Created a sequence of dates from the start of the data
 cases_dates <- seq(as.Date("2020/01/23"), as.Date("2020/06/04"), "day" )
@@ -44,10 +47,15 @@ cases_confirmed_by_county <- cases_confirmed_by_county %>% mutate(
   Dates = rep(cases_dates,times = 255)
 )
 
-cases_confirmed_by_state <- cases_confirmed_by_county %>% mutate(
-  Dates = rep(cases_dates,times = 51)
+cases_confirmed_by_state <- cases_confirmed_by_state %>% mutate(
+  Dates = rep(cases_dates,times = 59)
 )
 
 ggplot(cases_confirmed_by_county, aes(x = Dates, y = value)) +
  # geom_line(aes(color = Var2, linetype = Var2), show.legend = FALSE  ) +
- geom_smooth(aes(color = Var2, linetype = Var2), show.legend = FALSE, se=FALSE) + ylim(0,20)
+ geom_smooth(aes(color = Var2, linetype = Var2), show.legend = FALSE, se=FALSE) + ylim(0,20) + ggtitle("Number of cases per day: Texas")
+
+ggplot(cases_confirmed_by_county, aes(x = Dates, y = value)) +
+  # geom_line(aes(color = Var2, linetype = Var2), show.legend = FALSE  ) +
+  geom_smooth(aes(color = Var2, linetype = Var2), show.legend = FALSE, se=FALSE) + ylim(0,20) + ggtitle("Number of cases per day: US")
+
