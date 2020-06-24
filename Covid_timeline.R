@@ -42,20 +42,22 @@ cases_confirmed_by_state <- cases_US %>% select(state, date,confirmed_cases)%>%
 #Created a sequence of dates from the start of the data
 cases_dates <- seq(as.Date("2020/01/23"), as.Date("2020/06/04"), "day" )
 
+cases_dates_us <- seq(as.Date("2020/01/23"), as.Date("2020/06/23"), "day" )
+
 #Created a new column called Dates and repeat the sequence for each county
 cases_confirmed_by_county <- cases_confirmed_by_county %>% mutate(
   Dates = rep(cases_dates,times = 255)
 )
 
 cases_confirmed_by_state <- cases_confirmed_by_state %>% mutate(
-  Dates = rep(cases_dates,times = 59)
+  Dates = rep(cases_dates_us,times = 51)
 )
 
 ggplot(cases_confirmed_by_county, aes(x = Dates, y = value)) +
  # geom_line(aes(color = Var2, linetype = Var2), show.legend = FALSE  ) +
  geom_smooth(aes(color = Var2, linetype = Var2), show.legend = FALSE, se=FALSE) + ylim(0,20) + ggtitle("Number of cases per day: Texas")
 
-ggplot(cases_confirmed_by_county, aes(x = Dates, y = value)) +
+ggplot(cases_confirmed_by_state, aes(x = Dates, y = value)) +
   # geom_line(aes(color = Var2, linetype = Var2), show.legend = FALSE  ) +
   geom_smooth(aes(color = Var2, linetype = Var2), show.legend = FALSE, se=FALSE) + ylim(0,20) + ggtitle("Number of cases per day: US")
 
