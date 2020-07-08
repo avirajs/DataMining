@@ -52,9 +52,9 @@ cases_select <- na.omit(cases_select)
 #scale
 cases_select_scaled <- cases_select %>% keep(is.numeric) %>% scale()
 cor(cases_select_scaled)
+install.packages(fpc)
 
-
-
+library(cluster)
 #all variable clustering
 
 
@@ -62,17 +62,25 @@ cor(cases_select_scaled)
 #kmeans
 km <- kmeans(cases_select_scaled, centers = 3)
 
+#visualize cluster charactersitics
 ggplot(pivot_longer(as_tibble(km$centers,  rownames = "cluster"),
   cols = colnames(km$centers)),
   aes(y = name, x = value)) +
   geom_bar(stat = "identity") +
   facet_grid(rows = vars(cluster))
 
-counties <- as_tibble(map_data("county"))
+#sillouete for kmeans
+d <- dist(cases_select_scaled)
+plot(silhouette(km$cluster, d))
 
+
+
+
+
+
+counties <- as_tibble(map_data("county"))
 cases_select <- cases_select %>% mutate(county = county_name %>%
   str_to_lower() %>% str_replace('\\s+county\\s*$', ''))
-
 
 
 
@@ -83,6 +91,7 @@ us_counties <- counties %>%
 us_counties_clust <- us_counties %>% left_join(cases_select %>%
     add_column(cluster = factor(km$cluster)))
 
+#visualize map
 ggplot(us_counties_clust, aes(long, lat)) +
   geom_polygon(aes(group = group, fill = cluster)) +
   coord_quickmap() +
@@ -94,9 +103,8 @@ ggplot(us_counties_clust, aes(long, lat)) +
 
 d <- dist(cases_select_scaled)
 hc <- hclust(d)
-# plot(hc)
-
 cl <- cutree(hc, k = 8)
+
 
 us_counties_clust <- us_counties %>% left_join(cases_select %>%
     add_column(cluster = factor(cl)))
@@ -105,7 +113,6 @@ ggplot(us_counties_clust, aes(long, lat)) +
   geom_polygon(aes(group = group, fill = cluster)) +
   coord_quickmap() +
   labs(title = "Clusters", subtitle = "Only counties reporting 10+ cases")
-
 
 
 
@@ -129,7 +136,7 @@ selection_health <- cases_select_scaled %>% as.tibble %>% select(deaths_per_1000
 
 km <- kmeans(selection_health, centers = 3)
 
-
+#visualize cluster charactersitics
 ggplot(pivot_longer(as_tibble(km$centers,  rownames = "cluster"),
   cols = colnames(km$centers)),
   aes(y = name, x = value)) +
@@ -138,9 +145,11 @@ ggplot(pivot_longer(as_tibble(km$centers,  rownames = "cluster"),
   us_counties <- counties %>%
     rename(c(county = subregion))
 
-us_counties_clust <- us_counties %>% left_join(cases_select %>%
-    add_column(cluster = factor(km$cluster)))
+#sillouete for kmeans
+d <- dist(selection_health)
+plot(silhouette(km$cluster, d))
 
+#visualize map
 ggplot(us_counties_clust, aes(long, lat)) +
   geom_polygon(aes(group = group, fill = cluster)) +
   coord_quickmap() +
@@ -148,20 +157,14 @@ ggplot(us_counties_clust, aes(long, lat)) +
 
 
 
-counties <- as_tibble(map_data("county"))
-
-cases_select <- cases_select %>% mutate(county = county_name %>%
-str_to_lower() %>% str_replace('\\s+county\\s*$', ''))
 
 #hierarch clustering health
 d <- dist(selection_health)
 hc <- hclust(d)
+
 # plot(hc)
 
 cl <- cutree(hc, k = 8)
-
-us_counties_clust <- us_counties %>% left_join(cases_select %>%
-    add_column(cluster = factor(cl)))
 
 ggplot(us_counties_clust, aes(long, lat)) +
   geom_polygon(aes(group = group, fill = cluster)) +
@@ -186,7 +189,7 @@ selection_demographics <- cases_select_scaled %>% as.tibble %>% select(cases_per
 
 km <- kmeans(selection_demographics, centers = 3)
 
-
+#visualize cluster charactersitics
 ggplot(pivot_longer(as_tibble(km$centers,  rownames = "cluster"),
   cols = colnames(km$centers)),
   aes(y = name, x = value)) +
@@ -195,20 +198,17 @@ ggplot(pivot_longer(as_tibble(km$centers,  rownames = "cluster"),
   us_counties <- counties %>%
     rename(c(county = subregion))
 
-us_counties_clust <- us_counties %>% left_join(cases_select %>%
-    add_column(cluster = factor(km$cluster)))
+#sillouete for kmeans
+d <- dist(selection_demographics)
+plot(silhouette(km$cluster, d))
 
+#visualize map
 ggplot(us_counties_clust, aes(long, lat)) +
   geom_polygon(aes(group = group, fill = cluster)) +
   coord_quickmap() +
   labs(title = "Clusters", subtitle = "Only counties reporting 10+ cases")
 
 
-
-counties <- as_tibble(map_data("county"))
-
-cases_select <- cases_select %>% mutate(county = county_name %>%
-str_to_lower() %>% str_replace('\\s+county\\s*$', ''))
 
 
 
