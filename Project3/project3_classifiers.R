@@ -92,15 +92,6 @@ cases_select <- na.omit(cases_select)
 
 
 
-#discretize to create classes
-xs = quantile(cases_select$cases_delta_per_1000,c(0,1/3,2/3,1))
-xs[1]=xs[1]-.00005
-
-xs1 = quantile(cases_select$deaths_delta_per_1000,c(0,1/3,2/3,1))
-xs1[1]=xs1[1]-.00005
-
-
-
 cases_select <- cases_select %>% mutate(
   cases_per_1000_levels =  as.factor(cut_number(cases_select$cases_delta_per_1000,3)),
   deaths_per_1000_levels = as.factor(cut_number(cases_select$deaths_delta_per_1000,3))
