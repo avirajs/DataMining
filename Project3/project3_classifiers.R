@@ -2,8 +2,9 @@ library("tidyverse")
 library("ggplot2")
 library("DT")
 library("plyr")
-
-
+library(rpart)
+install.packages("rJava")
+library("rJava")
 
 
 cases_current <- read.csv("COVID-19_cases_plus_census.csv")
@@ -112,16 +113,17 @@ cases_select_scaled %>% group_by(cases_per_1000_levels) %>% tally()
 
 
 #select valuable features only
+
 library(FSelector)
 
-cases_select_scaled %>%  chi.squared(deaths_per_1000_levels ~ ., data = .) %>%
+death_weights <- cases_select_scaled %>%  chi.squared(deaths_per_1000_levels ~ ., data = .) %>%
  arrange(desc(attr_importance))
 
 cases_select_scaled %>%  chi.squared(cases_per_1000_levels ~ ., data = .) %>%
- arrange(desc(attr_importance))
+ arrange(desc(attr_importance) )%>% head()
 
 
-
+tree_model <- cases_select_scaled %>% rpart(deaths_per_1000_levels ~ ., data = .)
 
 
 
