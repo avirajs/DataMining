@@ -3,8 +3,7 @@ library("ggplot2")
 library("DT")
 library("plyr")
 library(rpart)
-install.packages("rJava")
-library("rJava")
+library("rjava")
 
 
 cases_current <- read.csv("COVID-19_cases_plus_census.csv")
@@ -52,10 +51,10 @@ cases %>% colnames
 
 
 cases_pop_scaled <- cases %>% mutate(
-  cases_per_1000 = confirmed_cases/total_pop,
-  deaths_per_1000 = deaths/total_pop,
-  cases_delta_per_1000 = confirmed_cases/total_pop,
-  deaths_delta_per_1000 = deaths/total_pop,
+  cases_per_1000 = confirmed_cases/total_pop*1000,
+  deaths_per_1000 = deaths/total_pop*1000,
+  cases_delta_per_1000 = confirmed_cases/total_pop*1000,
+  deaths_delta_per_1000 = deaths/total_pop*1000,
   death_per_case = deaths/confirmed_cases,
   percent_black = black_pop/total_pop,
   percent_male = male_pop/total_pop,
@@ -74,7 +73,7 @@ cases_pop_scaled <- cases %>% mutate(
 
 cases_select <- cases_pop_scaled %>% filter(confirmed_cases > 10) %>%
   arrange(desc(confirmed_cases)) %>%
-  select(county_name,cases_delta_per_1000,deaths_delta_per_1000,cases_delta_per_1000,deaths_delta_per_1000,
+  select(county_name,cases_per_1000,deaths_per_1000,cases_delta_per_1000,deaths_delta_per_1000,
     death_per_case,percent_black,percent_male,unemployment_rate,population_density,
     percent_commuters,icu_bed_pop,primary_care_1000,commuters_by_public_transportation,
     households,housing_units,vacant_housing_units,
@@ -116,16 +115,45 @@ cases_select_scaled %>% group_by(cases_per_1000_levels) %>% tally()
 
 library(FSelector)
 
-death_weights <- cases_select_scaled %>%  chi.squared(deaths_per_1000_levels ~ ., data = .) %>%
+ cases_select_scaled %>%  chi.squared(deaths_per_1000_levels ~ ., data = .) %>%
  arrange(desc(attr_importance))
 
 cases_select_scaled %>%  chi.squared(cases_per_1000_levels ~ ., data = .) %>%
  arrange(desc(attr_importance) )%>% head()
 
+cases_select_tree <- cases_select
+cases_select_tree <- cases_select_tree%>% mutate(high_risk = as.factor(deaths_per_1000 > 1))
+cases_select_tree %>% pull(high_risk) %>% table()
 
-tree_model <- cases_select_scaled %>% rpart(deaths_per_1000_levels ~ ., data = .)
+
+cases_select_tree <- cases_select_tree%>% select(-deaths_per_1000, -cases_per_1000, -death_per_case)
+cases_select_tree <- cases_select_tree%>% select(-deaths_delta_per_1000,-cases_delta_per_1000)
 
 
+
+cases_select_tree %>%  chi.squared(high_risk ~ ., data = .) %>%
+  arrange(desc(attr_importance) )%>% head()
+
+
+
+
+
+
+
+library(caret)
+fit <- cases_select_tree %>%
+  train(high_risk ~ . - county_name,
+        data = . ,
+        method = "rpart",
+        trControl = trainControl(method = "cv", number = 10)
+  )
+fit
+
+library(rpart.plot)
+
+rpart.plot(fit$finalModel, extra = 2)
+
+varImp(fit)
 
 
 library(keras)
