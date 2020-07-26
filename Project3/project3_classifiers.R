@@ -115,12 +115,21 @@ cases_select_scaled %>% group_by(cases_per_1000_levels) %>% tally()
 
 library(FSelector)
 
- cases_select_scaled %>%  chi.squared(deaths_per_1000_levels ~ ., data = .) %>%
+death_weights <- cases_select_scaled %>%  chi.squared(deaths_per_1000_levels ~ ., data = .) %>%
  arrange(desc(attr_importance))
 
-cases_select_scaled %>%  chi.squared(cases_per_1000_levels ~ ., data = .) %>%
+case_weights <- cases_select_scaled %>%  chi.squared(cases_per_1000_levels ~ ., data = .) %>%
  arrange(desc(attr_importance) )%>% head()
 
+
+ggplot(as_tibble(death_weights, rownames = "feature"),
+       aes(x = attr_importance, y = reorder(feature, attr_importance))) +
+  geom_bar(stat = "identity") +
+  xlab("Importance score") + ylab("Feature")
+
+
+
+#tree model
 cases_select_tree <- cases_select
 cases_select_tree <- cases_select_tree%>% mutate(high_risk = as.factor(deaths_per_1000 > 1))
 cases_select_tree %>% pull(high_risk) %>% table()
@@ -135,17 +144,22 @@ cases_select_tree %>%  chi.squared(high_risk ~ ., data = .) %>%
   arrange(desc(attr_importance) )%>% head()
 
 
-
-
-
-
-
 library(caret)
+
+
+library(doParallel)
+registerDoParallel()
+getDoParWorkers()
+
+
+
 fit <- cases_select_tree %>%
   train(high_risk ~ . - county_name,
         data = . ,
         method = "rpart",
-        trControl = trainControl(method = "cv", number = 10)
+        control = rpart.control(minsplit = 2),
+        trControl = trainControl(method = "cv", number = 10),
+        tuneLength = 5
   )
 fit
 
@@ -154,6 +168,27 @@ library(rpart.plot)
 rpart.plot(fit$finalModel, extra = 2)
 
 varImp(fit)
+
+library(sampling)
+id <- strata(cases_select_tree, stratanames = "high_risk", size = c(50, 50), method = "srswr")
+cases_select_tree_balanced <- cases_select_tree%>% slice(id$ID_unit)
+
+fit_balanced <- cases_select_tree_balanced %>%
+  train(high_risk ~ . - county_name,
+        data = . ,
+        method = "rpart",
+        control = rpart.control(minsplit = 2),
+        trControl = trainControl(method = "cv", number = 10),
+        tuneLength = 5
+  )
+fit_balanced
+
+
+rpart.plot(fit_balanced$finalModel, extra = 2)
+
+varImp(fit_balanced)
+
+
 
 
 library(keras)
