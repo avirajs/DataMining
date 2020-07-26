@@ -131,8 +131,6 @@ ggplot(as_tibble(death_weights, rownames = "feature"),
 
 #tree model
 cases_select_tree <- cases_select
-cases_select_tree <- cases_select_tree%>% mutate(high_risk = as.factor(deaths_per_1000 > 1))
-cases_select_tree %>% pull(high_risk) %>% table()
 
 
 cases_select_tree <- cases_select_tree%>% select(-deaths_per_1000, -cases_per_1000, -death_per_case)
@@ -140,8 +138,12 @@ cases_select_tree <- cases_select_tree%>% select(-deaths_delta_per_1000,-cases_d
 
 
 
-cases_select_tree %>%  chi.squared(high_risk ~ ., data = .) %>%
+cases_select_tree %>%  chi.squared(deaths_per_1000_levels ~ ., data = .) %>%
   arrange(desc(attr_importance) )%>% head()
+
+cases_select_tree %>%  chi.squared(cases_per_1000_levels ~ ., data = .) %>%
+  arrange(desc(attr_importance) )%>% head()
+
 
 
 library(caret)
@@ -154,7 +156,7 @@ getDoParWorkers()
 
 
 fit <- cases_select_tree %>%
-  train(high_risk ~ . - county_name,
+  train(deaths_per_1000_levels ~ . - county_name,
         data = . ,
         method = "rpart",
         control = rpart.control(minsplit = 2),
