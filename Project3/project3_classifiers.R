@@ -171,6 +171,7 @@ fit <- cases_select_pred_death %>%
   train(deaths_per_1000_levels ~ . ,
         data = . ,
         method = "rpart",
+        metric="Kappa",
         control = rpart.control(minsplit = 2),
         trControl = trainControl(method = "cv", number = 10),
         tuneLength = 5
@@ -192,6 +193,7 @@ varImp(fit)
 fit <- cases_select_pred_cases %>%
   train(cases_per_1000_levels ~ . ,
         data = . ,
+        metric="Kappa",
         method = "rpart",
         control = rpart.control(minsplit = 2),
         trControl = trainControl(method = "cv", number = 10),
@@ -205,5 +207,101 @@ confusionMatrix(data = predict(fit, cases_select_pred_cases),
 
 
 rpart.plot(fit$finalModel, extra = 2)
+
+varImp(fit)
+
+
+
+
+
+
+
+
+
+
+#predicting deaths
+fit <- cases_select_pred_death %>%
+  train(deaths_per_1000_levels ~ . ,
+        data = . ,
+        metric="Kappa",
+        method = "knn",
+        trControl = trainControl(method = "cv", number = 10),
+        tuneLength = 5
+  )
+fit
+
+confusionMatrix(data = predict(fit, cases_select_pred_death),
+  ref = cases_select_pred_death$deaths_per_1000_levels)
+
+
+varImp(fit)
+
+
+
+
+#redo predicting cases this time
+fit <- cases_select_pred_cases %>%
+  train(cases_per_1000_levels ~ . ,
+        data = . ,
+        method = "knn",
+        trControl = trainControl(method = "cv", number = 5),
+        tuneLength = 5
+  )
+fit
+
+#confusion matrix reveals how each class level of virus is being classfied
+confusionMatrix(data = predict(fit, cases_select_pred_cases),
+  ref = cases_select_pred_cases$cases_per_1000_levels)
+
+
+
+varImp(fit)
+
+
+
+
+
+
+
+
+
+
+library(klaR)
+
+#predicting deaths
+fit <- cases_select_pred_death %>%
+  train(deaths_per_1000_levels ~ . ,
+        data = . ,
+        metric="Kappa",
+        method = "nb",
+        trControl = trainControl(method = "cv", number = 10),
+        tuneLength = 5
+  )
+fit
+
+confusionMatrix(data = predict(fit, cases_select_pred_death),
+  ref = cases_select_pred_death$deaths_per_1000_levels)
+
+
+varImp(fit)
+
+
+
+
+#redo predicting cases this time
+fit <- cases_select_pred_cases %>%
+  train(cases_per_1000_levels ~ . ,
+        data = . ,
+        method = "knn",
+        trControl = trainControl(method = "cv", number = 5),
+        tuneLength = 5,
+  )
+fit
+
+#confusion matrix reveals how each class level of virus is being classfied
+confusionMatrix(data = predict(fit, cases_select_pred_cases),
+  ref = cases_select_pred_cases$cases_per_1000_levels)
+
+
 
 varImp(fit)
