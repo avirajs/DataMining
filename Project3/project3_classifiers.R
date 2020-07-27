@@ -3,7 +3,7 @@ library("ggplot2")
 library("DT")
 library("plyr")
 library(rpart)
-library("rjava")
+library("rJava")
 
 
 cases_current <- read.csv("COVID-19_cases_plus_census.csv")
@@ -129,34 +129,46 @@ ggplot(as_tibble(death_weights, rownames = "feature"),
 
 
 
-#tree model
-cases_select_tree <- cases_select
+#remove old classes
+cases_select <- cases_select%>% select(-deaths_per_1000, -cases_per_1000, -death_per_case)
+cases_select <- cases_select%>% select(-deaths_delta_per_1000,-cases_delta_per_1000)
+cases_select <- cases_select%>% select(-county_name)
+
+#either preditcitng death or cases for every model
+cases_select_pred_cases <- cases_select%>% select(-deaths_per_1000_levels)
+cases_select_pred_death <- cases_select%>% select(-cases_per_1000_levels)
 
 
-cases_select_tree <- cases_select_tree%>% select(-deaths_per_1000, -cases_per_1000, -death_per_case)
-cases_select_tree <- cases_select_tree%>% select(-deaths_delta_per_1000,-cases_delta_per_1000)
 
-
-
-cases_select_tree %>%  chi.squared(deaths_per_1000_levels ~ ., data = .) %>%
+cases_select_pred_cases %>%  chi.squared(cases_per_1000_levels ~ ., data = .) %>%
   arrange(desc(attr_importance) )%>% head()
 
-cases_select_tree %>%  chi.squared(cases_per_1000_levels ~ ., data = .) %>%
+cases_select_pred_death %>%  chi.squared(deaths_per_1000_levels ~ ., data = .) %>%
   arrange(desc(attr_importance) )%>% head()
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 library(caret)
 
-
 library(doParallel)
 registerDoParallel()
 getDoParWorkers()
 
-
-
-fit <- cases_select_tree %>%
-  train(deaths_per_1000_levels ~ . - county_name,
+#predicting deaths
+fit <- cases_select_pred_death %>%
+  train(deaths_per_1000_levels ~ . ,
         data = . ,
         method = "rpart",
         control = rpart.control(minsplit = 2),
@@ -165,49 +177,33 @@ fit <- cases_select_tree %>%
   )
 fit
 
+confusionMatrix(data = predict(fit, cases_select_pred_death),
+  ref = cases_select_pred_death$deaths_per_1000_levels)
+
 library(rpart.plot)
 
 rpart.plot(fit$finalModel, extra = 2)
 
 varImp(fit)
 
-library(sampling)
-id <- strata(cases_select_tree, stratanames = "high_risk", size = c(50, 50), method = "srswr")
-cases_select_tree_balanced <- cases_select_tree%>% slice(id$ID_unit)
 
-fit_balanced <- cases_select_tree_balanced %>%
-  train(high_risk ~ . - county_name,
+
+#redo predicting cases this time
+fit <- cases_select_pred_cases %>%
+  train(cases_per_1000_levels ~ . ,
         data = . ,
         method = "rpart",
         control = rpart.control(minsplit = 2),
         trControl = trainControl(method = "cv", number = 10),
         tuneLength = 5
   )
-fit_balanced
+fit
+
+#confusion matrix reveals how each class level of virus is being classfied
+confusionMatrix(data = predict(fit, cases_select_pred_cases),
+  ref = cases_select_pred_cases$cases_per_1000_levels)
 
 
-rpart.plot(fit_balanced$finalModel, extra = 2)
+rpart.plot(fit$finalModel, extra = 2)
 
-varImp(fit_balanced)
-
-
-
-
-library(keras)
-model <- keras_model_sequential()
-
-model %>%
-  layer_dense(units = 256, activation = 'relu', input_shape = c(784)) %>%
-  layer_dropout(rate = 0.4) %>%
-  layer_dense(units = 128, activation = 'relu') %>%
-  layer_dropout(rate = 0.3) %>%
-  layer_dense(units = 10, activation = 'softmax')
-
-model %>% summary
-
-
-model %>% compile(
-  loss = 'categorical_crossentropy',
-  optimizer = optimizer_adam(),
-  metrics = c('accuracy')
-)
+varImp(fit)
