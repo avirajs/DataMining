@@ -1,7 +1,8 @@
+library("plyr")
 library("tidyverse")
 library("ggplot2")
 library("DT")
-library("plyr")
+
 library(rpart)
 library("rJava")
 
@@ -115,17 +116,20 @@ cases_select_scaled %>% group_by(cases_per_1000_levels) %>% tally()
 
 library(FSelector)
 
-death_weights <- cases_select_scaled %>%  chi.squared(deaths_per_1000_levels ~ ., data = .) %>%
- arrange(desc(attr_importance))
+# death_weights <- cases_select_scaled %>%  chi.squared(deaths_per_1000_levels ~ ., data = .) %>%
+#  arrange(desc(attr_importance))
+#
+# death_weights
+#
+# case_weights <- cases_select_scaled %>%  chi.squared(cases_per_1000_levels ~ ., data = .) %>%
+#  arrange(desc(attr_importance) )%>% head()
+#
+# case_weights
 
-case_weights <- cases_select_scaled %>%  chi.squared(cases_per_1000_levels ~ ., data = .) %>%
- arrange(desc(attr_importance) )%>% head()
-
-
-ggplot(as_tibble(death_weights, rownames = "feature"),
-       aes(x = attr_importance, y = reorder(feature, attr_importance))) +
-  geom_bar(stat = "identity") +
-  xlab("Importance score") + ylab("Feature")
+# ggplot(as_tibble(death_weights, rownames = "feature"),
+#        aes(x = attr_importance, y = reorder(feature, attr_importance))) +
+#   geom_bar(stat = "identity") +
+#   xlab("Importance score") + ylab("Feature")
 
 
 
@@ -139,15 +143,16 @@ cases_select_pred_cases <- cases_select%>% select(-deaths_per_1000_levels)
 cases_select_pred_death <- cases_select%>% select(-cases_per_1000_levels)
 
 
+cases_select_pred_death %>%  chi.squared(deaths_per_1000_levels ~ ., data = .) %>%
+  arrange(desc(attr_importance) )%>% head()
 
 cases_select_pred_cases %>%  chi.squared(cases_per_1000_levels ~ ., data = .) %>%
   arrange(desc(attr_importance) )%>% head()
 
-cases_select_pred_death %>%  chi.squared(deaths_per_1000_levels ~ ., data = .) %>%
-  arrange(desc(attr_importance) )%>% head()
 
 
-
+cases_select_pred_death %>% colnames
+cases_select_pred_cases %>% colnames
 
 
 
@@ -176,15 +181,12 @@ fit <- cases_select_pred_death %>%
         trControl = trainControl(method = "cv", number = 10),
         tuneLength = 5
   )
-fit
 
-confusionMatrix(data = predict(fit, cases_select_pred_death),
-  ref = cases_select_pred_death$deaths_per_1000_levels)
+fit$resample %>% as.tibble %>% summarise_all(sd)
+fit$resample %>% as.tibble %>% summarise_all(mean)
 
 library(rpart.plot)
-
 rpart.plot(fit$finalModel, extra = 2)
-
 varImp(fit)
 
 
@@ -199,14 +201,13 @@ fit <- cases_select_pred_cases %>%
         trControl = trainControl(method = "cv", number = 10),
         tuneLength = 5
   )
-fit
+fit$resample %>% as.tibble %>% summarise_all(sd)
+fit$resample %>% as.tibble %>% summarise_all(mean)
+rpart.plot(fit$finalModel, extra = 2)
 
-#confusion matrix reveals how each class level of virus is being classfied
 confusionMatrix(data = predict(fit, cases_select_pred_cases),
   ref = cases_select_pred_cases$cases_per_1000_levels)
 
-
-rpart.plot(fit$finalModel, extra = 2)
 
 varImp(fit)
 
@@ -218,6 +219,10 @@ varImp(fit)
 
 
 
+
+
+
+#knn
 
 #predicting deaths
 fit <- cases_select_pred_death %>%
@@ -226,35 +231,21 @@ fit <- cases_select_pred_death %>%
         metric="Kappa",
         method = "knn",
         trControl = trainControl(method = "cv", number = 10),
-        tuneLength = 5
+        tuneLength = 10
   )
-fit
-
-confusionMatrix(data = predict(fit, cases_select_pred_death),
-  ref = cases_select_pred_death$deaths_per_1000_levels)
-
-
+fit$resample %>% as.tibble %>% summarise_all(sd)
+fit$resample %>% as.tibble %>% summarise_all(mean)
 varImp(fit)
-
-
-
 
 #redo predicting cases this time
 fit <- cases_select_pred_cases %>%
   train(cases_per_1000_levels ~ . ,
         data = . ,
         method = "knn",
-        trControl = trainControl(method = "cv", number = 5),
-        tuneLength = 5
+        trControl = trainControl(method = "cv", number = 10),
+        tuneLength = 10
   )
-fit
-
-#confusion matrix reveals how each class level of virus is being classfied
-confusionMatrix(data = predict(fit, cases_select_pred_cases),
-  ref = cases_select_pred_cases$cases_per_1000_levels)
-
-
-
+fit$resample %>% as.tibble %>% summarise_all(mean)
 varImp(fit)
 
 
@@ -267,41 +258,45 @@ varImp(fit)
 
 
 library(klaR)
-
 #predicting deaths
+grid <- expand.grid(
+  usekernel = c(TRUE, FALSE),
+  fL = 0:5,
+  adjust = seq(0, 5, by = 1)
+)
 fit <- cases_select_pred_death %>%
   train(deaths_per_1000_levels ~ . ,
         data = . ,
         metric="Kappa",
+        tuneGrid=grid,
         method = "nb",
-        trControl = trainControl(method = "cv", number = 10),
-        tuneLength = 5
+        trControl = trainControl(method = "cv", number = 10)
   )
-fit
-
-confusionMatrix(data = predict(fit, cases_select_pred_death),
-  ref = cases_select_pred_death$deaths_per_1000_levels)
-
-
+fit$resample %>% as.tibble %>% summarise_all(sd)
+fit$resample %>% as.tibble %>% summarise_all(mean)
 varImp(fit)
 
 
 
 
+
 #redo predicting cases this time
-fit <- cases_select_pred_cases %>%
+
+fit <- cases_select_pred_cases %>% as.data.frame %>%
   train(cases_per_1000_levels ~ . ,
         data = . ,
-        method = "knn",
-        trControl = trainControl(method = "cv", number = 5),
-        tuneLength = 5,
-  )
-fit
+        metric="Kappa",
+        tuneGrid=grid,
+        method = "nb",
+        trControl = trainControl(method = "boot", number = 10),
 
-#confusion matrix reveals how each class level of virus is being classfied
+  )
+
+fit$resample %>% as.tibble %>% summarise_all(sd)
+fit$resample %>% as.tibble %>% summarise_all(mean)
+
 confusionMatrix(data = predict(fit, cases_select_pred_cases),
   ref = cases_select_pred_cases$cases_per_1000_levels)
-
 
 
 varImp(fit)
